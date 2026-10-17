@@ -1,6 +1,7 @@
 package parul.practice.WAL;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class WALReader {
@@ -51,38 +52,49 @@ public class WALReader {
         return stored == computed;
     }
 
-    public List<WALEntry> replay() throws IOException {
+    public RecoveryResult replay() throws IOException {
         // read from reader
         Map<Integer, List<WALEntry>> pendingTxns = new HashMap<>();
         Set<Integer> allCommittedTxns = new HashSet<>();
         Set<Integer> invalidTransactions = new HashSet<>();
 
-        boolean isCommited = false;
+        int mxTxn = 0;
+        long mxSeq = 0;
+        int txn = 0;
+        long validBytes = 0;
 
         String line = "";
         while((line = reader.readLine())!= null){
             System.out.println("Reading line: " + line);  // ← add this
             List<String> writes = splitFields(line);
             System.out.println("Fields count: " + writes.size());  // ← add this
-            int txn = Integer.parseInt(writes.get(0));
 
-            if(writes.get(2).equals(OperationType.COMMIT.name())){
-                allCommittedTxns.add(txn);
-                continue;
+            try {
+                writes = splitFields(line);
+                if (writes.size() != 6) throw new IllegalArgumentException("bad field count");
+                txn = Integer.parseInt(writes.get(0));
+                long seq = Long.parseLong(writes.get(1));
+                Integer.parseInt(writes.get(5));
+                OperationType.valueOf(writes.get(2));
+                mxTxn = Math.max(mxTxn, txn);
+                mxSeq = Math.max(mxSeq, seq);
+            } catch (RuntimeException ex) {
+                System.err.println("Torn/corrupt WAL tail, stopping: " + line);
+                break;
             }
-            // confirm checkSum
-            if(!isChecksumValid(writes)){
-                // skip
-                invalidTransactions.add(txn);
-                continue;
+            if (!isChecksumValid(writes)) {
+                System.err.println("Checksum mismatch, stopping replay at: " + line);
+                break;
             }
-
+            validBytes += line.getBytes(StandardCharsets.UTF_8).length + 1;
+            if (writes.get(2).equals(OperationType.COMMIT.name())) { allCommittedTxns.add(txn); continue; }
 
             WALEntry walEntry = new WALEntry.Builder().setTxnId(Integer.parseInt(writes.get(0))).setSeqNo(Long.parseLong(writes.get(1))).setOperation(OperationType.valueOf(writes.get(2))).setKey(writes.get(3)).setValue(writes.get(4)).setCheckSum(Integer.parseInt(writes.get(5))).build();
             if(!pendingTxns.containsKey(txn)){
                 pendingTxns.put(txn, new ArrayList<>());
             }
             pendingTxns.get(txn).add(walEntry);
+
 
         }
 
@@ -110,7 +122,8 @@ public class WALReader {
 
         System.out.println("Committed txns: " + allCommittedTxns);  // ← add this
         System.out.println("Pending txns: " + pendingTxns.keySet());
-        return result;
+        RecoveryResult record = new RecoveryResult(mxTxn, mxSeq, validBytes, result);
+        return record;
     }
 
 

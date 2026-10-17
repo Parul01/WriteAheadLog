@@ -1,6 +1,9 @@
 package parul.practice.WAL;
 
 import java.io.IOException;
+import java.nio.channels.FileChannel;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -28,6 +31,7 @@ public class WALService {
 
         globalSeqNo = new AtomicLong(0);
         currentTxnId = 0;
+        startup();
     }
 
     public void put(String key, String value) throws IOException {
@@ -90,25 +94,17 @@ public class WALService {
     }// writes COMMIT to WAL
 
     public void startup() throws IOException {
-        List<WALEntry> pendingTxns = walReader.replay();
+        RecoveryResult result = walReader.replay();
+        try (FileChannel ch = FileChannel.open(Paths.get(WAL_PATH), StandardOpenOption.WRITE)) {
+            ch.truncate(result.validBytes());
+        }
+        List<WALEntry> pendingTxns = result.entries();
         System.out.println("On startup !!!!!");
         System.out.println(pendingTxns);
 
-        int maxTxnId = 0;
-        long seqno = 0;
-        for(WALEntry e: pendingTxns){
-            if(e.getTxnId() > maxTxnId){
-                maxTxnId = e.getTxnId();
+        currentTxnId = result.firstValue();
+        globalSeqNo.set(result.secondValue());
 
-            }
-
-            if(seqno < e.getSeqNo()){
-                seqno = e.getSeqNo();
-            }
-        }
-
-        currentTxnId = maxTxnId;
-        globalSeqNo.set(seqno);
         for(WALEntry w: pendingTxns){
             OperationType type = w.getOperation();
             if(type.equals(OperationType.DELETE)){

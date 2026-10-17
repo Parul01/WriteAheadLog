@@ -1,19 +1,19 @@
 package parul.practice.WAL;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 
 /*
 WAL writer write WAL write ahead log  to the text file
 
  */
 public class WALWriter {
-
-    BufferedWriter bw;
+    private final FileOutputStream fos;
+    private BufferedWriter bw;
 
     public WALWriter(String path) throws IOException {
-      this.bw = new BufferedWriter(new FileWriter(path, true));
+        this.fos = new FileOutputStream(path, true);
+        this.bw  = new BufferedWriter(new OutputStreamWriter(fos, StandardCharsets.UTF_8));
     }
 
     private String escape(String value){
@@ -35,6 +35,9 @@ public class WALWriter {
 
         bw.newLine();
         bw.flush();
+        if (entry.getOperation() == OperationType.COMMIT) {
+            fos.getChannel().force(false);            // page cache -> disk (durable)
+        }
 
     }
 

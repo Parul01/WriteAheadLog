@@ -4,7 +4,7 @@ import java.io.IOException;
 
 public class WALTester {
     public static void main(String[] args) throws IOException {
-
+/*
         // ===== RUN 1: Write data, simulate crash =====
         System.out.println("=== RUN 1: Writing data ===");
         WALService service = new WALService();
@@ -28,11 +28,19 @@ public class WALTester {
         // ===== RUN 2: Restart and recover =====
         System.out.println("\n=== RUN 2: Recovery after crash ===");
         WALService recovered = new WALService();
-        recovered.startup();  // replay WAL
+//        recovered.startup();  // replay WAL
 
         System.out.println("After recovery KVStore: " + recovered.getKVStore().getAll());
-        // Should show: {Name=Anthony, Age=31, Email=anthony@gmail.com}
-        // Bob's changes discarded — txn 2 never committed
+
+        */
+
+
+        WALService service = new WALService();
+
+        service.beginTransaction();
+        service.put("Name", "Hailey");
+
+        service.commit();
 
 
     }
