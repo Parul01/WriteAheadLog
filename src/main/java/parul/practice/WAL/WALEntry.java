@@ -7,7 +7,7 @@ public class WALEntry {
     private OperationType operation;
     private String key;
     private String value;
-    private int checkSum;
+    private long checkSum;
 
     public WALEntry(Builder builder) {
 
@@ -40,7 +40,7 @@ public class WALEntry {
         return value;
     }
 
-    public int getCheckSum() {
+    public long getCheckSum() {
         return checkSum;
     }
 
@@ -63,7 +63,7 @@ public class WALEntry {
         private OperationType operation;
         private String key;
         private String value;
-        private int checkSum;
+        private long checkSum;
 
         public Builder setTxnId(int txnId) {
             this.txnId = txnId;
@@ -92,7 +92,7 @@ public class WALEntry {
             return this;
         }
 
-        public Builder setCheckSum(int checkSum) {
+        public Builder setCheckSum(long checkSum) {
             this.checkSum = checkSum;
             return this;
         }

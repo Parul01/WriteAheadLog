@@ -4,6 +4,7 @@ import java.io.IOException;
 
 public class WALTester {
     public static void main(String[] args) throws IOException {
+
 /*
         // ===== RUN 1: Write data, simulate crash =====
         System.out.println("=== RUN 1: Writing data ===");
@@ -14,6 +15,7 @@ public class WALTester {
         service.put("Age", "31");
         service.put("Email", "anthony@gmail.com");
         service.commit();
+
 
         // Simulate crash — start second transaction but DON'T commit
         service.beginTransaction();
@@ -32,15 +34,26 @@ public class WALTester {
 
         System.out.println("After recovery KVStore: " + recovered.getKVStore().getAll());
 
-        */
+
+
+
+
+
+ */
+
 
 
         WALService service = new WALService();
 
         service.beginTransaction();
         service.put("Name", "Hailey");
+        service.put("Age", "15");
 
         service.commit();
+
+
+
+
 
 
     }

@@ -2,6 +2,7 @@ package parul.practice.WAL;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
@@ -9,6 +10,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.zip.CRC32;
 
 // send to WALWriter to write to WAL
 //replay from Reader
@@ -37,7 +39,7 @@ public class WALService {
     public void put(String key, String value) throws IOException {
 
         long seqNo = globalSeqNo.incrementAndGet();
-        int checksum = Objects.hash(currentTxnId + "|" + seqNo + "|" +
+        long checksum = computeCheckSum(currentTxnId + "|" + seqNo + "|" +
                 OperationType.PUT.name() + "|" + key + "|" + value);
         WALEntry entry = new WALEntry.Builder()
                 .setSeqNo(seqNo)
@@ -60,7 +62,7 @@ public class WALService {
 
     public void delete(String key) throws IOException {
         long seqNo = globalSeqNo.incrementAndGet();
-        int checksum = Objects.hash(currentTxnId + "|" + seqNo + "|" +
+        long checksum = computeCheckSum(currentTxnId + "|" + seqNo + "|" +
                 OperationType.DELETE.name() + "|" + key + "|" + "");
         WALEntry entry = new WALEntry.Builder()
                 .setSeqNo(seqNo)
@@ -78,7 +80,7 @@ public class WALService {
 
     public void commit() throws IOException {
         long seqNo = globalSeqNo.incrementAndGet();
-        int checksum = Objects.hash(currentTxnId + "|" + seqNo + "|" +
+        long checksum = computeCheckSum(currentTxnId + "|" + seqNo + "|" +
                 OperationType.COMMIT.name() + "|" + "" + "|" + "");
         WALEntry entry = new WALEntry.Builder()
                 .setSeqNo(seqNo)
@@ -94,20 +96,18 @@ public class WALService {
     }// writes COMMIT to WAL
 
     public void startup() throws IOException {
+
         RecoveryResult result = walReader.replay();
         try (FileChannel ch = FileChannel.open(Paths.get(WAL_PATH), StandardOpenOption.WRITE)) {
             ch.truncate(result.validBytes());
         }
-        List<WALEntry> pendingTxns = result.entries();
-        System.out.println("On startup !!!!!");
-        System.out.println(pendingTxns);
 
         currentTxnId = result.firstValue();
         globalSeqNo.set(result.secondValue());
+        List<WALEntry> validTxns = result.entries();
 
-        for(WALEntry w: pendingTxns){
-            OperationType type = w.getOperation();
-            if(type.equals(OperationType.DELETE)){
+        for (WALEntry w: validTxns){
+            if(w.getOperation().equals(OperationType.DELETE)){
                 kvStore.remove(w.getKey());
             }else if(w.getOperation().equals(OperationType.PUT)){
                 kvStore.put(w.getKey(), w.getValue());
@@ -116,8 +116,16 @@ public class WALService {
             }
         }
 
+
+
     } // called on restart — replays WAL into KVStore
 
+    private long computeCheckSum(String data){
+        CRC32 crc = new CRC32();
+        crc.update(data.getBytes(StandardCharsets.UTF_8));
+        System.out.println(crc.getValue());
+        return crc.getValue();
+    }
 
     public KVStore getKVStore() {
         return kvStore;

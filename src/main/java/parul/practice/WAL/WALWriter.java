@@ -2,6 +2,7 @@ package parul.practice.WAL;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.util.zip.CRC32;
 
 /*
 WAL writer write WAL write ahead log  to the text file
@@ -44,4 +45,5 @@ public class WALWriter {
     public void close() throws IOException {
         bw.close();
     }
+
 }
