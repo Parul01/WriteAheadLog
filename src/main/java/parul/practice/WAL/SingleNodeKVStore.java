@@ -6,7 +6,7 @@ public class SingleNodeKVStore {
 
     WALService service;
     public SingleNodeKVStore() throws IOException {
-        service = new WALService();
+//        service = new WALService();
         service.startup();
 
     }

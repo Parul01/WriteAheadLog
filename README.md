@@ -1,11 +1,11 @@
 # WriteAheadLog
-Write Ahead log is popular approach used in various DBs and even operating system for crash recovery. 
-### Problem Statement
+Write-ahead logging is a standard crash-recovery technique: changes are made durable in an append-only log before being applied to the main data structure. It’s used by databases (Postgres, MySQL InnoDB’s redo log), journaling file systems (ext4, NTFS), and consensus systems (Raft logs). Kafka uses the same append-only log structure, but there the log is the primary data, not a recovery aid### Problem Statement
 - To recover from a crash which happened in middle of ongoing transaction or lost data in memory, we might need to redo the transactions logged in DB.
 ### Design
 - Maintaining a log file for all transactions can help system to perform actions that were left pending but were logged
 - Creating a key value store
 - We are logging all types of transaction - what a real system also does
+- fysnc to persist logs after every commit
 - Format
 ```text
 Transaction id|Sequence no|Operation|Key|value|checksum
